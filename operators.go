@@ -17,10 +17,10 @@ func Map[A any, B any](ch <-chan A, f func(A) B) <-chan B {
 	return out
 }
 
-// MapC applies the given function to each element in the input channel
+// MapUntil applies the given function to each element in the input channel
 // and returns a new channel containing the results.
 // It is cancelled if the supplied done channel is closed before the operation has completed.
-func MapC[A any, B any](done <-chan struct{}, ch <-chan A, f func(A) B) <-chan B {
+func MapUntil[A any, B any](done <-chan struct{}, ch <-chan A, f func(A) B) <-chan B {
 	out := make(chan B)
 	go func() {
 		defer close(out)
@@ -63,9 +63,9 @@ func Flatten[A any](ch <-chan <-chan A) <-chan A {
 	return out
 }
 
-// Flatten takes a channel of channels and merges it into a single channel.
+// FlattenUntil takes a channel of channels and merges it into a single channel.
 // It is cancelled if the supplied done channel is closed before the operation has completed.
-func FlattenC[A any](done <-chan struct{}, ch <-chan <-chan A) <-chan A {
+func FlattenUntil[A any](done <-chan struct{}, ch <-chan <-chan A) <-chan A {
 	out := make(chan A)
 	go func() {
 		defer close(out)
@@ -122,10 +122,10 @@ func Bind[A any, B any](ch <-chan A, f func(A) <-chan B) <-chan B {
 	return out
 }
 
-// Bind maps each element of the input channel to a new channel,
+// BindUntil maps each element of the input channel to a new channel,
 // then flattens the result into a single channel.
 // It is cancelled if the supplied done channel is closed before the operation has completed.
-func BindC[A any, B any](done <-chan struct{}, ch <-chan A, f func(A) <-chan B) <-chan B {
+func BindUntil[A any, B any](done <-chan struct{}, ch <-chan A, f func(A) <-chan B) <-chan B {
 	// Can be written as Flatten(Map(ch, f)).
 	// Combined the two operators here to reduce the number of channels used.
 	out := make(chan B)
@@ -169,6 +169,7 @@ func BindC[A any, B any](done <-chan struct{}, ch <-chan A, f func(A) <-chan B) 
 }
 
 // TODO: Take(n)
+// TODO: TakeUntil(ch)?
 
 // Just creates a channel that produces a single element.
 func Just[A any](value A) <-chan A {

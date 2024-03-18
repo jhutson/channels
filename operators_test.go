@@ -34,7 +34,7 @@ func TestMap(t *testing.T) {
 	}
 }
 
-func TestMapC(t *testing.T) {
+func TestMapUntil(t *testing.T) {
 	for _, bufferSize := range []int{0, 1, elementCount} {
 		t.Run(fmt.Sprintf("no cancellation, producer with buffer size %d", bufferSize), func(t *testing.T) {
 
@@ -43,7 +43,7 @@ func TestMapC(t *testing.T) {
 
 			go PublishIntRange(ch, elementCount)
 
-			for value := range MapC(context.Background().Done(), ch, double) {
+			for value := range MapUntil(context.Background().Done(), ch, double) {
 				assert.Equal(t, double(actualCount), value)
 				actualCount++
 			}
@@ -61,7 +61,7 @@ func TestMapC(t *testing.T) {
 
 			go PublishIntRange(ch, elementCount)
 
-			for value := range MapC(ctx.Done(), ch, double) {
+			for value := range MapUntil(ctx.Done(), ch, double) {
 				assert.Equal(t, double(actualCount), value)
 				actualCount++
 				if actualCount == cancelAtCount {
@@ -100,7 +100,7 @@ func TestFlatten(t *testing.T) {
 	}
 }
 
-func TestFlattenC(t *testing.T) {
+func TestFlattenUntil(t *testing.T) {
 	for _, bufferSize := range []int{0, 1, elementCount} {
 		t.Run(fmt.Sprintf("no cancellation, producer with buffer size %d", bufferSize), func(t *testing.T) {
 
@@ -109,7 +109,7 @@ func TestFlattenC(t *testing.T) {
 
 			go PublishIntRange(ch, elementCount)
 
-			testChannel := FlattenC(context.Background().Done(), Map(ch, func(x int) <-chan int {
+			testChannel := FlattenUntil(context.Background().Done(), Map(ch, func(x int) <-chan int {
 				return Repeat(x+1, x+1)
 			}))
 
@@ -133,7 +133,7 @@ func TestFlattenC(t *testing.T) {
 
 			go PublishIntRange(ch, elementCount)
 
-			testChannel := FlattenC(ctx.Done(), Map(ch, Just))
+			testChannel := FlattenUntil(ctx.Done(), Map(ch, Just))
 
 			for range testChannel {
 				actualCount++
@@ -174,7 +174,7 @@ func TestBind(t *testing.T) {
 	}
 }
 
-func TestBindC(t *testing.T) {
+func TestBindUntil(t *testing.T) {
 	for _, bufferSize := range []int{0, 1, elementCount} {
 		t.Run(fmt.Sprintf("no cancellation, producer with buffer size %d", bufferSize), func(t *testing.T) {
 
@@ -183,7 +183,7 @@ func TestBindC(t *testing.T) {
 
 			go PublishIntRange(ch, elementCount)
 
-			testChannel := BindC(context.Background().Done(), ch, func(x int) <-chan int {
+			testChannel := BindUntil(context.Background().Done(), ch, func(x int) <-chan int {
 				return Repeat(x+1, x+1)
 			})
 
@@ -207,7 +207,7 @@ func TestBindC(t *testing.T) {
 
 			go PublishIntRange(ch, elementCount)
 
-			testChannel := BindC(ctx.Done(), ch, Just)
+			testChannel := BindUntil(ctx.Done(), ch, Just)
 
 			for range testChannel {
 				actualCount++
