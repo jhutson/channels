@@ -1,6 +1,7 @@
 package channels
 
 import (
+	"context"
 	"sync"
 )
 
@@ -126,7 +127,7 @@ func Bind[A any, B any](ch <-chan A, f func(A) <-chan B) <-chan B {
 // then flattens the result into a single channel.
 // It is cancelled if the supplied done channel is closed before the operation has completed.
 func BindUntil[A any, B any](done <-chan struct{}, ch <-chan A, f func(A) <-chan B) <-chan B {
-	// Can be written as Flatten(Map(ch, f)).
+	// Can be written as FlattenUntil(Map(ch, f)).
 	// Combined the two operators here to reduce the number of channels used.
 	out := make(chan B)
 	go func() {
@@ -166,6 +167,18 @@ func BindUntil[A any, B any](done <-chan struct{}, ch <-chan A, f func(A) <-chan
 		wait.Wait()
 	}()
 	return out
+}
+
+// BindUntilC maps each element of the input channel to a new channel,
+// then flattens the result into a single channel.
+// It is cancelled if the supplied context is done before the operation has completed.
+// The context is also passed to each invocation of the supplied function f.
+func BindUntilC[A any, B any](ctx context.Context, ch <-chan A, f func(context.Context, A) <-chan B) <-chan B {
+	g := func(x A) <-chan B {
+		return f(ctx, x)
+	}
+
+	return BindUntil(ctx.Done(), ch, g)
 }
 
 // TODO: Take(n)

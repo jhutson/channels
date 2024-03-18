@@ -46,4 +46,5 @@ jobs:
         uses: golangci/golangci-lint-action@v4
         with:
           version: latest
+          skip-cache: true
 
