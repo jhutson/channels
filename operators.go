@@ -181,8 +181,53 @@ func BindUntilC[A any, B any](ctx context.Context, ch <-chan A, f func(context.C
 	return BindUntil(ctx.Done(), ch, g)
 }
 
-// TODO: Take(n)
-// TODO: TakeUntil(ch)?
+// Take returns a channel that produces at most the number of elements specified by the supplied count
+// from the given input channel.
+func Take[A any](ch <-chan A, count int) <-chan A {
+	if count == 0 {
+		return Empty[A]()
+	}
+
+	out := make(chan A)
+	go func() {
+		defer close(out)
+		seen := 0
+
+		for value := range ch {
+			out <- value
+			seen++
+			if seen == count {
+				return
+			}
+		}
+	}()
+	return out
+}
+
+// Take returns a channel that produces elements from the input channel until either that channel
+// or the supplied done channel is closed.
+func TakeUntil[A any](done <-chan struct{}, ch <-chan A) <-chan A {
+	out := make(chan A)
+	go func() {
+		defer close(out)
+
+		for {
+			select {
+			case <-done:
+				return
+			case value, ok := <-ch:
+				if !ok {
+					return
+				}
+				out <- value
+			}
+		}
+	}()
+	return out
+}
+
+// TODO: Aggregate (left fold): Aggregate[A,R](ch <-chan A, seed R, f func(A, R) R) <-chan R
+// TODO: Generate (unfold)
 
 // Just creates a channel that produces a single element.
 func Just[A any](value A) <-chan A {
