@@ -226,7 +226,23 @@ func TakeUntil[A any](done <-chan struct{}, ch <-chan A) <-chan A {
 	return out
 }
 
-// TODO: Aggregate (left fold): Aggregate[A,R](ch <-chan A, seed R, f func(A, R) R) <-chan R
+// Aggregate combines values from the input channel and returns a new channel with the accumlated value.
+// Elements are applied to the initial seed using the supplied accumulator function.
+func Aggregate[A any, R any](ch <-chan A, seed R, f func(A, R) R) <-chan R {
+	out := make(chan R)
+	go func() {
+		defer close(out)
+		result := seed
+
+		for value := range ch {
+			result = f(value, result)
+		}
+
+		out <- result
+	}()
+	return out
+}
+
 // TODO: Generate (unfold)
 
 // Just creates a channel that produces a single element.
