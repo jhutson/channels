@@ -278,6 +278,10 @@ func TestTakeUntil(t *testing.T) {
 	}
 }
 
+func sumOfSequence(count int) int {
+	return count * (count + 1) / 2 //  n(n + 1) ∕ 2
+}
+
 func TestAggregate(t *testing.T) {
 	for _, bufferSize := range []int{0, 1, elementCount} {
 		t.Run(fmt.Sprintf("producer with buffer size %d", bufferSize), func(t *testing.T) {
@@ -288,16 +292,49 @@ func TestAggregate(t *testing.T) {
 				return sum + n
 			}
 
-			expectedTotal := elementCount * (elementCount + 1) / 2 //  n(n + 1) ∕ 2
+			expectedTotal := sumOfSequence(elementCount)
 			total := 0
 			count := 0
-			for result := range Aggregate(ch, 0, addLength) {
+			for result := range Aggregate(ch, 0, addLength, Identity) {
 				total = result
 				count++
 			}
 
 			assert.Equal(t, 1, count)
 			assert.Equal(t, expectedTotal, total)
+		})
+	}
+}
+
+func TestScan(t *testing.T) {
+	type state struct {
+		ElementCount int
+		Sum          int
+	}
+
+	for _, bufferSize := range []int{0, 1, elementCount} {
+		t.Run(fmt.Sprintf("producer with buffer size %d", bufferSize), func(t *testing.T) {
+			ch := StringIntRange(bufferSize, 1, elementCount)
+
+			addLength := func(x string, s state) state {
+				n, _ := strconv.Atoi(x)
+				return state{
+					ElementCount: s.ElementCount + 1,
+					Sum:          s.Sum + n,
+				}
+			}
+
+			checkSum := func(s state) bool {
+				return s.Sum == sumOfSequence(s.ElementCount)
+			}
+
+			count := 0
+			for item := range Scan(ch, state{}, addLength, checkSum) {
+				count++
+				assert.Truef(t, item, "failed check for element %d", count)
+			}
+
+			assert.Equal(t, elementCount, count)
 		})
 	}
 }
@@ -357,3 +394,5 @@ func Repeat[A any](channelSize int, value A, count int) <-chan A {
 
 	return ch
 }
+
+func Identity[A any](x A) A { return x }

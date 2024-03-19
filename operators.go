@@ -238,17 +238,35 @@ func TakeUntil[A any](done <-chan struct{}, ch <-chan A) <-chan A {
 
 // Aggregate combines values from the input channel and returns a new channel with the accumlated value.
 // Elements are applied to the initial seed using the supplied accumulator function.
-func Aggregate[A any, R any](ch <-chan A, seed R, f func(A, R) R) <-chan R {
+// The given mapResult function is called to transform the accumulated value to the result passed to the returned channel.
+func Aggregate[A any, S any, R any](ch <-chan A, seed S, accumulator func(A, S) S, mapResult func(S) R) <-chan R {
 	out := make(chan R)
 	go func() {
 		defer close(out)
 		result := seed
 
 		for value := range ch {
-			result = f(value, result)
+			result = accumulator(value, result)
 		}
 
-		out <- result
+		out <- mapResult(result)
+	}()
+	return out
+}
+
+// Scan combines values from the input channel and returns a new channel that produces an element for each accumlated value.
+// Elements are applied to the initial seed using the supplied accumulator function.
+// The given mapResult function is called to transform the accumulated value to the result passed to the returned channel.
+func Scan[A any, S any, R any](ch <-chan A, seed S, accumulator func(A, S) S, mapResult func(S) R) <-chan R {
+	out := make(chan R)
+	go func() {
+		defer close(out)
+		result := seed
+
+		for value := range ch {
+			result = accumulator(value, result)
+			out <- mapResult(result)
+		}
 	}()
 	return out
 }
