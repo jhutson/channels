@@ -113,12 +113,22 @@ func Bind[A any, B any](ch <-chan A, f func(A) <-chan B) <-chan B {
 	out := make(chan B)
 	go func() {
 		defer close(out)
+		var wait sync.WaitGroup
+
 		for value := range ch {
 			inner := f(value)
-			for innerVal := range inner {
-				out <- innerVal
-			}
+
+			wait.Add(1)
+			go func(ch2 <-chan B) {
+				defer wait.Done()
+
+				for innerVal := range inner {
+					out <- innerVal
+				}
+			}(inner)
 		}
+
+		wait.Wait()
 	}()
 	return out
 }
@@ -242,8 +252,6 @@ func Aggregate[A any, R any](ch <-chan A, seed R, f func(A, R) R) <-chan R {
 	}()
 	return out
 }
-
-// TODO: Generate (unfold)
 
 // Just creates a channel that produces a single element.
 func Just[A any](value A) <-chan A {
